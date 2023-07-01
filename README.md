@@ -9,7 +9,6 @@ ease my IaaC development and have been using this in production environments wit
 **If you want to see a real-life example of how this template works,
 visit this repo: https://github.com/sikhlana/terraform**
 
----
 
 ## Features
 
@@ -22,7 +21,13 @@ visit this repo: https://github.com/sikhlana/terraform**
 - Define resource or datum metadata from a different method instead of the `constructor(scope: Construct, id: string, config?: object)` with the `@Constructor()` decorator.
 - Define Terraform Cloud workspace with the `@Workspace(name: string, config?: WorkspaceConfig)` decorator.
 
----
+
+## Requirements
+- Terraform: `>=1.5`
+- CDKTF: `>=0.17`
+- NodeJS: `>=18.0`
+- Typescript: `>=5.1`
+
 
 ## Usage
 
@@ -34,7 +39,6 @@ visit this repo: https://github.com/sikhlana/terraform**
 6. ???
 7. Profit.
 
----
 
 ## Tests
 
@@ -42,7 +46,6 @@ __Tests are for pussies. Directly raw-dog your infrastructure like a boss!__
 
 *__On a serious note,__ I didn't get the time to create tests for this project. __Hopefully in the near future?__*
 
----
 
 ## Contributing
 
