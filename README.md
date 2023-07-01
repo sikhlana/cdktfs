@@ -44,8 +44,8 @@ visit [this repo](https://github.com/sikhlana/terraform).**
 
 _Tests are for pussies. Directly raw-dog your infrastructure like a boss!_
 
-*__On a serious note,__ I didn't get the time to create tests for this project.<br>
-__Hopefully in the near future?__*
+__On a serious note,__ I didn't get the time to create tests for this project.<br>
+__*Hopefully in the near future?*__
 
 
 ## Contributing
