@@ -7,7 +7,7 @@ This is highly opinionated CDKTF template for Typescript that I use for myself t
 ease my IaaC development and have been using this in production environments without any hitch.
 
 **If you want to see a real-life example of how this template works,
-visit this repo: https://github.com/sikhlana/terraform**
+visit [this repo](https://github.com/sikhlana/terraform).**
 
 
 ## Features
