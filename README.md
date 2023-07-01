@@ -18,7 +18,7 @@ visit [this repo](https://github.com/sikhlana/terraform).**
   - Refer to stacks using the `@Stack()` decorator (usable within a `TerraformStack` class).
   - Refer to resources within the stack with the `@Resource(id: string)` decorator.
   - Refer to data within the stack with the `@Data(id: string)` decorator.
-- Define resource or datum metadata from a different method instead of the `constructor(scope: Construct, id: string, config?: object)` with the `@Constructor()` decorator.
+- Define resource or datum metadata from a different method instead of the `constructor(...)` with the `@Constructor()` decorator.
 - Define Terraform Cloud workspace with the `@Workspace(name: string, config?: WorkspaceConfig)` decorator.
 
 
@@ -42,9 +42,10 @@ visit [this repo](https://github.com/sikhlana/terraform).**
 
 ## Tests
 
-__Tests are for pussies. Directly raw-dog your infrastructure like a boss!__
+_Tests are for pussies. Directly raw-dog your infrastructure like a boss!_
 
-*__On a serious note,__ I didn't get the time to create tests for this project. __Hopefully in the near future?__*
+*__On a serious note,__ I didn't get the time to create tests for this project.<br>
+__Hopefully in the near future?__*
 
 
 ## Contributing
