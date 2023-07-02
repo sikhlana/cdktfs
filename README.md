@@ -33,7 +33,7 @@ visit [this repo](https://github.com/sikhlana/terraform).**
 
 1. Create a template from this repo.
 2. Update the value for `projectId` inside the `cdktf.json` file. You can generate a random UUID [from here](https://www.uuidgenerator.net/version4).
-3. Install NPM dependencies by running `npm ci`.
+3. Install NPM dependencies by running `npm ci --include=dev`.
 4. Install your required providers by running `cdktf provider add <provider...>`.
 5. Create your stacks.
 6. Run `cdktf apply '*' --auto-approve`.
