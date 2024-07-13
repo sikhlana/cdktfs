@@ -17,7 +17,7 @@
     "lint:fix": "eslint . --fix"
   },
   "engines": {
-    "node": ">=18.0"
+    "node": ">=20.0"
   },
   "dependencies": {
     "@cdktf/provider-tfe": "^11.5.0",

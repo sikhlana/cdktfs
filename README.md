@@ -21,7 +21,7 @@ visit [this repo](https://github.com/sikhlana/terraform).**
 ## Requirements
 - Terraform: `>=1.5`
 - CDKTF: `>=0.17`
-- NodeJS: `>=18.0`
+- NodeJS: `>=20.0`
 - Typescript: `>=5.1`
 
 
