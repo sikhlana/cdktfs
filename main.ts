@@ -1,418 +1,173 @@
+import 'reflect-metadata';
+import './env';
+
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+import { buildTerraformCloudStack } from '@support/cloud';
+import {
+  buildConstructs,
+  files,
+  loadConstructs,
+  loadFunctions,
+  resolve,
+  workspaceNameAndProject,
+} from '@support/functions';
+import {
+  CURRENT_STACK,
+  PARENT_SCOPE,
+  SCOPE_ID,
+  STACK_VARIABLES,
+} from '@support/symbols';
+import { StackDetails } from '@support/types';
 import {
   App,
   CloudBackend,
   LocalBackend,
   NamedCloudWorkspace,
+  TerraformProvider,
   TerraformStack,
 } from 'cdktf';
 import { Construct } from 'constructs';
-import 'dotenv/config';
-import { existsSync } from 'fs';
-import { each, map, snakeCase, sortBy, uniqBy } from 'lodash';
-import { join } from 'node:path';
-import 'reflect-metadata';
-import { Class } from 'type-fest';
+// @ts-expect-error typescript files dont exist...
+import * as printTree from 'print-tree';
+import { kebabCase } from 'scule';
+import { container } from 'tsyringe';
 
-import {
-  CONSTRUCTOR_METADATA,
-  PARAM_DEPS_METADATA,
-} from './decorators/constructor';
-import {
-  PARAM_DATA_METADATA,
-  SELF_DECLARED_DATA_METADATA,
-} from './decorators/data';
-import { PROVIDER_METADATA } from './decorators/provider';
-import {
-  PARAM_RESOURCES_METADATA,
-  SELF_DECLARED_RESOURCES_METADATA,
-} from './decorators/resource';
-import { SELF_DECLARED_STACKS_METADATA } from './decorators/stack';
-import { workspaces } from './decorators/workspace';
-import {
-  appendRuntimeExtension,
-  classes,
-  find,
-  functions,
-  isConstructClass,
-  load,
-  stackId,
-} from './support/functions';
+process.env.BASE_DIRECTORY = __dirname;
 
-type Container = WeakMap<Class<Construct>, Construct>;
+async function main(app: App): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('dotenv-expand').expand(require('dotenv').config());
 
-class Main {
-  constructor() {
-    this.preload();
-    const app = new App();
-    this.build(app);
-    app.synth();
-  }
+  const stacks = new Map<string, StackDetails>();
 
-  private preload(): void {
-    const files = find(`stacks/**/${appendRuntimeExtension('*')}`);
+  for (const file of files('stacks/**/stack.ts')) {
+    const dir = dirname(file);
+    const childContainer = container.createChildContainer();
 
-    for (const file of files) {
-      load(file);
-    }
-  }
+    for (const cls of loadConstructs(file)) {
+      const stackId = kebabCase(cls.name);
 
-  private build(app: App) {
-    for (const { cls, stack, path } of this.stacks(app)) {
-      const container: Container = new WeakMap();
-      container.set(cls, stack);
+      childContainer.registerInstance(PARENT_SCOPE, app);
+      childContainer.register(SCOPE_ID, { useValue: stackId });
 
-      this.provider(cls, stack, container);
-      this.variables(stack, path, container);
+      const instance = resolve(childContainer, cls) as TerraformStack;
 
-      const data = this.data(stack, path, container);
-      this.resources(stack, path, data, container);
+      const details: StackDetails = {
+        path: dir,
+        stack: instance,
+      };
 
-      this.outputs(stack, path);
-      this.backend(cls, stack, path);
-    }
-  }
+      container.registerInstance(`stack:${stackId}`, instance);
+      container.registerInstance(cls, instance);
 
-  private *stacks(app: App): IterableIterator<{
-    id: string;
-    cls: Class<TerraformStack>;
-    stack: TerraformStack;
-    path: string;
-  }> {
-    const paths = find('stacks/**/');
-    const stacks = new WeakMap();
+      childContainer.registerInstance(CURRENT_STACK, instance);
 
-    for (const path of paths) {
-      const file = join(path, appendRuntimeExtension('stack'));
+      if (existsSync(join(dir, 'variables.ts'))) {
+        for (const cls of loadConstructs(join(dir, 'variables.ts'))) {
+          const vars = new cls(instance, 'vars');
 
-      if (!existsSync(file)) {
-        continue;
-      }
+          childContainer.registerInstance(cls, vars);
+          childContainer.registerInstance(STACK_VARIABLES, vars);
 
-      if (existsSync(join(path, '.local')) && !process.env.TF_LOCAL) {
-        continue;
-      }
-
-      for (const cls of classes<TerraformStack>(file)) {
-        const id = stackId(cls);
-        const stack = new cls(app, id);
-
-        if (Reflect.hasMetadata(SELF_DECLARED_STACKS_METADATA, cls)) {
-          for (const { key, stack: value } of Reflect.getMetadata(
-            SELF_DECLARED_STACKS_METADATA,
-            cls,
-          )) {
-            Object.defineProperty(stack, key, {
-              configurable: false,
-              enumerable: false,
-              writable: false,
-              value: stacks.get(value),
-            });
-          }
-        }
-
-        stacks.set(cls, stack);
-        yield { id, cls, stack, path };
-      }
-    }
-  }
-
-  private provider(
-    cls: Class<TerraformStack>,
-    stack: TerraformStack,
-    container: Container,
-  ): void {
-    if (Reflect.hasMetadata(PROVIDER_METADATA, cls)) {
-      for (const { provider, config } of Reflect.getMetadata(
-        PROVIDER_METADATA,
-        cls,
-      )) {
-        container.set(
-          provider,
-          new provider(stack, snakeCase(provider.name), config),
-        );
-      }
-    }
-  }
-
-  private variables(
-    stack: TerraformStack,
-    path: string,
-    container: Container,
-  ): void {
-    const file = join(path, appendRuntimeExtension('variables'));
-
-    if (existsSync(file)) {
-      for (const cls of classes<Construct>(file)) {
-        container.set(cls, new cls(stack, 'vars'));
-
-        return;
-      }
-    }
-  }
-
-  private data(
-    stack: TerraformStack,
-    path: string,
-    container: Container,
-  ): Map<string, Construct> {
-    const dir = join(path, 'data');
-    const data = new Map();
-
-    if (!existsSync(dir)) {
-      return data;
-    }
-
-    const files = find(join(dir, appendRuntimeExtension('*')));
-    if (files.length === 0) {
-      return data;
-    }
-
-    for (const file of files) {
-      for (const fn of functions<
-        (
-          stack: TerraformStack,
-        ) => Construct[] | Record<string, Construct> | Construct | void
-      >(file)) {
-        let ret;
-
-        if (isConstructClass(fn)) {
-          ret = new fn(stack, fn.id, {});
-        } else {
-          ret = fn(stack);
-        }
-
-        if (ret) {
-          if (Construct.isConstruct(ret)) {
-            if (Reflect.hasMetadata(CONSTRUCTOR_METADATA, ret.constructor)) {
-              const constructor = Reflect.getMetadata(
-                CONSTRUCTOR_METADATA,
-                ret.constructor,
-              );
-
-              let params = [];
-
-              for (const param of Reflect.getMetadata(
-                PARAM_DEPS_METADATA,
-                ret.constructor,
-                constructor,
-              ) ?? []) {
-                if (container.has(param.type)) {
-                  params.push({
-                    index: param.index,
-                    instance: container.get(param.type),
-                  });
-                }
-              }
-
-              params = sortBy(params, 'index');
-              params = map(params, 'instance');
-
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              ret[constructor](...params);
-            }
-
-            ret = [ret];
-          }
-
-          if (Array.isArray(ret)) {
-            for (const value of ret) {
-              data.set(value.node.id, value);
-            }
-          } else {
-            each(ret, (value, key) => {
-              data.set(key, value);
-            });
-          }
+          break;
         }
       }
-    }
 
-    if (Reflect.hasMetadata(SELF_DECLARED_DATA_METADATA, stack.constructor)) {
-      for (const { key, id } of Reflect.getMetadata(
-        SELF_DECLARED_DATA_METADATA,
-        stack.constructor,
-      )) {
-        Object.defineProperty(stack, key, {
-          configurable: false,
-          enumerable: false,
-          writable: false,
-          value: data.get(id),
-        });
+      if (existsSync(join(dir, 'provider.ts'))) {
+        for (const fn of loadFunctions<
+          (stack: TerraformStack) => TerraformProvider
+        >(join(dir, 'provider.ts'))) {
+          const provider = fn(instance);
+          childContainer.registerInstance(
+            `provider:${provider.node.id}`,
+            provider,
+          );
+        }
       }
+
+      await buildConstructs(
+        join(dir, 'common'),
+        childContainer,
+        childContainer,
+        instance,
+        '/',
+      );
+
+      if (existsSync(join(dir, 'backend.ts'))) {
+        details.backend = {
+          functions: loadFunctions(join(dir, 'backend.ts')),
+        };
+      }
+
+      if (Reflect.hasMetadata('tfe:workspace', instance.constructor)) {
+        details.workspace = {
+          functions: existsSync(join(dir, 'workspace.ts'))
+            ? loadFunctions(join(dir, 'workspace.ts'))
+            : [],
+        };
+      }
+
+      stacks.set(stackId, details);
+      break;
     }
 
-    return data;
+    // await childContainer.dispose();
   }
 
-  private resources(
-    stack: TerraformStack,
-    path: string,
-    data: Map<string, Construct>,
-    container: Container,
-  ) {
-    const dir = join(path, 'resources');
-    const resources = new Map();
+  let buildTfCloudStack = false;
 
-    if (!existsSync(dir)) {
-      return;
-    }
-
-    const files = find(join(dir, '**', appendRuntimeExtension('*')));
-    if (files.length === 0) {
-      return;
-    }
-
-    for (const file of files) {
-      for (const fn of functions<
-        (
-          stack: TerraformStack,
-        ) => Construct[] | Record<string, Construct> | Construct | void
-      >(file)) {
-        let ret;
-
-        if (isConstructClass(fn)) {
-          ret = new fn(stack, fn.id, {});
-        } else {
-          ret = fn(stack);
-        }
-
-        if (ret) {
-          if (Construct.isConstruct(ret)) {
-            if (Reflect.hasMetadata(CONSTRUCTOR_METADATA, ret.constructor)) {
-              const constructor = Reflect.getMetadata(
-                CONSTRUCTOR_METADATA,
-                ret.constructor,
-              );
-
-              let params = [];
-
-              for (const param of Reflect.getMetadata(
-                PARAM_RESOURCES_METADATA,
-                ret.constructor,
-                constructor,
-              ) ?? []) {
-                if (resources.has(param.id)) {
-                  params.push({
-                    index: param.index,
-                    instance: resources.get(param.id),
-                  });
-                }
-              }
-
-              for (const param of Reflect.getMetadata(
-                PARAM_DATA_METADATA,
-                ret.constructor,
-                constructor,
-              ) ?? []) {
-                if (data.has(param.id)) {
-                  params.push({
-                    index: param.index,
-                    instance: data.get(param.id),
-                  });
-                }
-              }
-
-              for (const param of Reflect.getMetadata(
-                PARAM_DEPS_METADATA,
-                ret.constructor,
-                constructor,
-              ) ?? []) {
-                if (container.has(param.type)) {
-                  params.push({
-                    index: param.index,
-                    instance: container.get(param.type),
-                  });
-                }
-              }
-
-              params = sortBy(params, 'index');
-              params = uniqBy(params, 'index');
-              params = map(params, 'instance');
-
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              ret[constructor](...params);
-            }
-
-            ret = [ret];
-          }
-
-          if (Array.isArray(ret)) {
-            for (const value of ret) {
-              resources.set(value.node.id, value);
-            }
-          } else {
-            each(ret, (value, key) => {
-              resources.set(key, value);
-            });
-          }
-        }
+  for (const [_, details] of stacks.entries()) {
+    if (details.backend) {
+      for (const fn of details.backend.functions) {
+        fn(details.stack);
+        break;
       }
+
+      continue;
     }
 
-    if (
-      !Reflect.hasMetadata(SELF_DECLARED_RESOURCES_METADATA, stack.constructor)
-    ) {
-      return;
-    }
+    if (details.workspace && process.env.TFE_ORGANIZATION) {
+      const [name, project] = workspaceNameAndProject(details.stack);
 
-    for (const { key, id } of Reflect.getMetadata(
-      SELF_DECLARED_RESOURCES_METADATA,
-      stack.constructor,
-    )) {
-      Object.defineProperty(stack, key, {
-        configurable: false,
-        enumerable: false,
-        writable: false,
-        value: resources.get(id),
+      new CloudBackend(details.stack, {
+        organization: process.env.TFE_ORGANIZATION,
+        workspaces: new NamedCloudWorkspace(`${name}-${project}`, project),
       });
+
+      buildTfCloudStack = true;
+      continue;
     }
+
+    new LocalBackend(details.stack);
   }
 
-  private outputs(stack: TerraformStack, path: string): void {
-    const file = join(path, appendRuntimeExtension('outputs'));
-
-    if (!existsSync(file)) {
-      return;
-    }
-
-    for (const fn of functions<(stack: TerraformStack) => void>(file)) {
-      fn(stack);
-    }
-  }
-
-  private backend(
-    cls: Class<TerraformStack>,
-    stack: TerraformStack,
-    path: string,
-  ): void {
-    const file = join(path, appendRuntimeExtension('backend'));
-
-    if (existsSync(file)) {
-      for (const fn of functions<(stack: TerraformStack) => void>(file)) {
-        fn(stack);
-
-        return;
-      }
-    }
-
-    if (Reflect.hasMetadata('stack:workspace', cls)) {
-      const { workspace } = Reflect.getMetadata('stack:workspace', cls);
-
-      if (workspaces.has(workspace)) {
-        new CloudBackend(stack, {
-          hostname: 'app.terraform.io',
-          organization: process.env.TFC_ORGANIZATION as string,
-          workspaces: new NamedCloudWorkspace(workspace),
-        });
-
-        return;
-      }
-    }
-
-    new LocalBackend(stack);
+  if (buildTfCloudStack) {
+    buildTerraformCloudStack(app, stacks);
   }
 }
 
-new Main();
+(async (app: App) => {
+  await main(app);
+  return app;
+})(new App()).then((app) => {
+  if (process.env.CDKTF_OUTDIR) {
+    app.synth();
+  } else {
+    printTree(
+      app,
+      (scope: Construct) => {
+        let name = scope.constructor.name;
+
+        if (!name || name.startsWith('default_')) {
+          name = Object.getPrototypeOf(scope.constructor).name;
+        }
+
+        return `${scope.node.id} (${name})`.trim();
+      },
+      // @ts-expect-error just trying to hijack...
+      (scope: Construct) => Object.values(scope.node._children),
+    );
+  }
+});

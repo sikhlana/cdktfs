@@ -1,10 +1,11 @@
 *.d.ts
 *.js
-node_modules
-cdktf.out
+node_modules/
+cdktf.out/
 cdktf.log
 *terraform.*.tfstate*
 .env
-.terraform
+.terraform/
 tsconfig.tsbuildinfo
 !.eslintrc.js
+!setup.js

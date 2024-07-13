@@ -16,16 +16,19 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "paths": {
-      "@gen/*": [".gen/*"]
+      "@common/*": ["common/*"],
+      "@gen/*": [".gen/*"],
+      "@support/*": ["support/*"],
+      "@stacks/*": ["stacks/*"]
     },
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
     "stripInternal": true,
-    "target": "ES2022",
+    "target": "ES2018",
     "incremental": true,
     "skipLibCheck": true
   },
