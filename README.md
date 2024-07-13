@@ -3,7 +3,7 @@
 
 ---
 
-This is highly opinionated CDKTF template for Typescript that I developed to ease my IaaC development
+This is a highly opinionated CDKTF template for Typescript that I developed to ease my IaaC management
 and have been using this is production environment for some time now without any hitch.
 
 **If you want to see a real-life example of how this template works,
