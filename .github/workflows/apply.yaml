@@ -28,16 +28,16 @@ jobs:
           cache: yarn
           cache-dependency-path: yarn.lock
 
-      - name: Generate terraform bindings
+      - name: Generate Terraform Bindings
         run: |
           npx --yes cdktf-cli get
 
-      - name: Install NPM dependencies
+      - name: Install NPM Dependencies
         run: |
           rm -rf node_modules/
-          yarn install --frozen-lockfile
+          yarn install --frozen-lockfile --production
 
-      - name: Load .env file contents
+      - name: Load .env File Contents
         env:
           ENV_FILE_CONTENTS: ${{ secrets.ENV_FILE_CONTENTS }}
         run: |

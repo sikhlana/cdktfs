@@ -16,7 +16,7 @@ visit [this repo](https://github.com/sikhlana/terraform).**
 - Automatically autoload all stacks and its constructs (resources and data).
 - A minimal dependency injector using [tsyringe](https://github.com/microsoft/tsyringe).
 - Define Terraform Cloud workspace using the `@Workspace(workspace: string, project?: string)` decorator.
-- View all your definitions in a tree format by running `npm ts-node main.ts`.
+- View all your definitions in a tree format by running `npx ts-node main.ts`.
 - GitHub workflows to automatically plan and apply changes (put `.env` file contents inside `ENV_FILE_CONTENTS` environment secret).
 
 ## Requirements
