@@ -21,15 +21,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Setup NodeJS
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          cache: yarn
+          cache-dependency-path: yarn.lock
 
       - name: Generate terraform bindings
         run: |
@@ -38,7 +35,7 @@ jobs:
       - name: Install NPM dependencies
         run: |
           rm -rf node_modules/
-          pnpm install --frozen-lockfile
+          yarn install --frozen-lockfile
 
       - name: Load .env file contents
         env:
