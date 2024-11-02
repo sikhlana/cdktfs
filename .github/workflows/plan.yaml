@@ -1,0 +1,49 @@
+name: Plan Pull Request
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Generate terraform bindings
+        run: |
+          npx --yes cdktf-cli get
+
+      - name: Install NPM dependencies
+        run: |
+          pnpm install --frozen-lockfile
+
+      - name: Load .env file contents
+        env:
+          ENV_FILE_CONTENTS: ${{ secrets.ENV_FILE_CONTENTS }}
+        run: |
+          echo "${ENV_FILE_CONTENTS}" | tee .env
+
+      - name: Run Terraform CDK
+        uses: hashicorp/terraform-cdk-action@v5
+        with:
+          mode: plan-only
+          stackName: '*'
+          updateComment: 'false'
