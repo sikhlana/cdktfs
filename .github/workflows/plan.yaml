@@ -36,6 +36,7 @@ jobs:
 
       - name: Install NPM dependencies
         run: |
+          rm -rf node_modules/
           pnpm install --frozen-lockfile
 
       - name: Load .env file contents
@@ -48,5 +49,6 @@ jobs:
         uses: hashicorp/terraform-cdk-action@v5
         with:
           mode: plan-only
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
           stackName: '*'
           updateComment: 'false'

@@ -1,7 +1,7 @@
 {
   "language": "typescript",
   "app": "npx ts-node main.ts",
-  "projectId": "[UUID]",
+  "projectId": "00000000-00000000-00000000-00000000",
   "sendCrashReports": "true",
   "terraformProviders": [],
   "terraformModules": [],

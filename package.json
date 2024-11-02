@@ -20,6 +20,7 @@
     "node": ">=20.0"
   },
   "dependencies": {
+    "@cdktf/provider-null": "^10.0.1",
     "@cdktf/provider-tfe": "^11.8.0",
     "cdktf": "^0.20.9",
     "constructs": "^10.4.2",
