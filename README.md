@@ -23,6 +23,7 @@ visit [this repo](https://github.com/sikhlana/terraform).**
 - CDKTF: `>=0.17`
 - NodeJS: `>=20.0`
 - Typescript: `>=5.1`
+- pnpm: `>=9.0`
 
 
 ## Usage
@@ -30,7 +31,7 @@ visit [this repo](https://github.com/sikhlana/terraform).**
 1. Create a template from this repo.
 2. Update the value for `projectId` inside the `cdktf.json` file.
    You can generate a random UUID [from here](https://www.uuidgenerator.net/version4).
-3. Install NPM dependencies by running `npm ci --include=dev`.
+3. Install dependencies by running `pnpm install --frozen-lockfile`.
 4. Install your required providers by running `cdktf provider add <provider...>`.
 5. Create your stacks.
 6. Run `cdktf apply '*'`.
