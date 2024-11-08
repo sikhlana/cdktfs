@@ -36,7 +36,7 @@ import { container } from 'tsyringe';
 
 process.env.BASE_DIRECTORY = __dirname;
 
-async function main(app: App): Promise<void> {
+async function main(app: App): Promise<string[]> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   require('dotenv-expand').expand(require('dotenv').config());
 
@@ -146,14 +146,19 @@ async function main(app: App): Promise<void> {
   if (buildTfCloudStack) {
     buildTerraformCloudStack(app, stacks);
   }
+
+  return Array.from(stacks.keys());
 }
 
 (async (app: App) => {
-  await main(app);
-  return app;
-})(new App()).then((app) => {
+  const stacks = await main(app);
+
+  return { app, stacks };
+})(new App()).then(({ app, stacks }) => {
   if (process.env.CDKTF_OUTDIR) {
     app.synth();
+  } else if (process.env.CI) {
+    process.stdout.write(`${JSON.stringify(stacks)}\n`, 'utf-8');
   } else {
     printTree(
       app,
