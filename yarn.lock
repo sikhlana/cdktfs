@@ -8,9 +8,9 @@
   integrity sha512-X176VQZFTNi1xSyUEoSb9CsFHfJ9EpcdzCx33UlZMGfQo/DRZC8NT1vHxCQU2TAaB1ZwmnhXEkW2FJO6pB6Pjg==
 
 "@cdktf/provider-tfe@^11.8.0":
-  version "11.9.1"
-  resolved "https://registry.yarnpkg.com/@cdktf/provider-tfe/-/provider-tfe-11.9.1.tgz#6997594bdfcc83c184fbf956d71d07359f2c240c"
-  integrity sha512-hEgzaXwQKiry+iss9C0MpdFw6IiJwYaXpTPtRALZzU+Bem7DUhlnIx2kZF+3RVBC1Fp+UDRVFF1PNWjhH2biHA==
+  version "11.10.0"
+  resolved "https://registry.yarnpkg.com/@cdktf/provider-tfe/-/provider-tfe-11.10.0.tgz#3468c28922ab059c123016acb7cfdc7cf83a8a39"
+  integrity sha512-6FX6fsRVx0UuSGmMRBY8cuogleMzlZh3UAI0s+vBtOWkQsGJHcjJf0OnU49bdgaUH0E+fEv8o+Fd/4zieAIOtA==
 
 "@eslint-community/eslint-utils@^4.2.0", "@eslint-community/eslint-utils@^4.4.0":
   version "4.4.1"
